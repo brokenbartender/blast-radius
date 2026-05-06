@@ -8,10 +8,11 @@ SQLite (SHA-256 cached — only changed files are re-indexed) and resolves
 transitive dependents in milliseconds.
 
 ```bash
-pip install blast-radius
+pip install impact-radius
 ```
 
-[![PyPI version](https://badge.fury.io/py/blast-radius.svg)](https://pypi.org/project/blast-radius/)
+[![PyPI version](https://badge.fury.io/py/impact-radius.svg)](https://pypi.org/project/impact-radius/)
+[![Downloads](https://img.shields.io/pypi/dm/impact-radius.svg)](https://pypi.org/project/impact-radius/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![CI](https://github.com/brokenbartender/blast-radius/actions/workflows/ci.yml/badge.svg)](https://github.com/brokenbartender/blast-radius/actions)
@@ -22,19 +23,19 @@ pip install blast-radius
 
 ```bash
 # Build the graph (incremental — only re-indexes changed files)
-blast-radius --build
+impact-radius --build
 
 # What breaks if I change src/utils.py?
-blast-radius --query src/utils.py
+impact-radius --query src/utils.py
 
 # Output a Mermaid diagram (renders in GitHub READMEs / PRs)
-blast-radius --query src/utils.py --mermaid
+impact-radius --query src/utils.py --mermaid
 
 # Watch mode — auto-rebuild on every save
-blast-radius --watch
+impact-radius --watch
 
 # Raw JSON output (pipe to jq, scripts, CI)
-blast-radius --query src/utils.py --json
+impact-radius --query src/utils.py --json
 ```
 
 ---
@@ -53,7 +54,7 @@ src/utils.py  ⚡ GOD NODE
 Install Rich for colored output:
 
 ```bash
-pip install blast-radius[rich]
+pip install impact-radius[rich]
 ```
 
 ---
@@ -112,13 +113,13 @@ All paths are configurable — no hardcoded assumptions:
 
 ```bash
 # Scan only specific directories
-blast-radius --build --scan src tests
+impact-radius --build --scan src tests
 
 # Use a custom DB path (useful in CI)
-blast-radius --build --db /tmp/my-graph.db
+impact-radius --build --db /tmp/my-graph.db
 
 # Adjust watch poll interval
-blast-radius --watch --interval 1.0
+impact-radius --watch --interval 1.0
 ```
 
 Or via Python API:
@@ -147,13 +148,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: "3.11"}
-      - run: pip install blast-radius
+      - run: pip install impact-radius
       - name: Compute blast radius
         id: br
         run: |
-          blast-radius --build
+          impact-radius --build
           echo "mermaid<<EOF" >> $GITHUB_OUTPUT
-          blast-radius --query "${{ github.event.pull_request.head.sha }}" --mermaid >> $GITHUB_OUTPUT
+          impact-radius --query "${{ github.event.pull_request.head.sha }}" --mermaid >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
       - uses: marocchino/sticky-pull-request-comment@v2
         with:
@@ -183,16 +184,16 @@ if result.get("graphify", {}).get("god_node"):
 
 ```bash
 # Core (no dependencies)
-pip install blast-radius
+pip install impact-radius
 
 # With Rich colored output
-pip install blast-radius[rich]
+pip install impact-radius[rich]
 
 # With watchdog file watching (faster than polling)
-pip install blast-radius[watch]
+pip install impact-radius[watch]
 
 # Everything
-pip install blast-radius[all]
+pip install impact-radius[all]
 ```
 
 ---
