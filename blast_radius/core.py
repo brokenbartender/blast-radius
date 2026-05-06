@@ -155,6 +155,13 @@ def _get_db(db_path: Optional[Path] = None) -> sqlite3.Connection:
             kind      TEXT,
             UNIQUE(file_path, name, kind)
         );
+        CREATE TABLE IF NOT EXISTS dynamic_imports (
+            from_file TEXT,
+            to_module TEXT,
+            mechanism TEXT,
+            UNIQUE(from_file, to_module, mechanism)
+        );
+        CREATE INDEX IF NOT EXISTS idx_dynamic_imports ON dynamic_imports(from_file);
     """)
     return conn
 
@@ -214,6 +221,7 @@ def build_graph(
                 continue
 
             cur.execute("DELETE FROM imports WHERE from_file=?",  (rel,))
+            cur.execute("DELETE FROM dynamic_imports WHERE from_file=?", (rel,))
             cur.execute("DELETE FROM symbols WHERE file_path=?", (rel,))
 
             for node in ast.walk(tree):
@@ -227,6 +235,19 @@ def build_graph(
                     cur.execute("INSERT OR IGNORE INTO symbols VALUES (?,?,?)", (rel, node.name, "function"))
                 elif isinstance(node, ast.ClassDef):
                     cur.execute("INSERT OR IGNORE INTO symbols VALUES (?,?,?)", (rel, node.name, "class"))
+                elif isinstance(node, ast.Call):
+                    # Detect __import__("module")
+                    if isinstance(node.func, ast.Name) and node.func.id == "__import__":
+                        if node.args and isinstance(node.args[0], ast.Constant):
+                            cur.execute("INSERT OR IGNORE INTO dynamic_imports VALUES (?,?,?)",
+                                       (rel, str(node.args[0].value), "__import__"))
+                    # Detect importlib.import_module / spec_from_file_location
+                    elif isinstance(node.func, ast.Attribute) and node.func.attr in (
+                        "import_module", "spec_from_file_location"
+                    ):
+                        if node.args and isinstance(node.args[0], ast.Constant):
+                            cur.execute("INSERT OR IGNORE INTO dynamic_imports VALUES (?,?,?)",
+                                       (rel, str(node.args[0].value), f"importlib.{node.func.attr}"))
 
             cur.execute("INSERT OR REPLACE INTO files VALUES (?,?,?)", (rel, sha, time.time()))
             indexed += 1
@@ -287,12 +308,24 @@ def get_blast_radius(
     test_files = [f for f in all_files if f.startswith("tests/") or "/test_" in f]
     conn.close()
 
+    dyn_rows = cur.execute(
+        "SELECT to_module, mechanism FROM dynamic_imports WHERE from_file=?", (rel,)
+    ).fetchall()
+    dynamic_imports = [{"module": r[0], "mechanism": r[1]} for r in dyn_rows]
+
     result = {
         "file":              rel,
         "direct_dependents": all_files,
         "test_files":        test_files,
         "total_affected":    len(all_files),
     }
+    if dynamic_imports:
+        result["dynamic_imports"] = dynamic_imports
+        result["dynamic_import_warning"] = (
+            f"{len(dynamic_imports)} dynamic import(s) detected "
+            f"(__import__ / importlib) — targets may have additional dependents "
+            f"not captured in static analysis."
+        )
     centrality = get_graphify_centrality(rel, graphify_path)
     if centrality.get("graphify_available"):
         result["graphify"] = {
