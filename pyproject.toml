@@ -3,7 +3,7 @@ requires = ["setuptools>=67", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "blast-radius"
+name = "impact-radius"
 version = "1.0.0"
 description = "AST call graph analyzer — what breaks if I change this file?"
 readme = "README.md"
@@ -12,7 +12,7 @@ license = {text = "MIT"}
 keywords = [
     "ast", "static-analysis", "dependency-analysis", "call-graph",
     "python", "devtools", "refactoring", "impact-analysis",
-    "code-graph", "mermaid", "rich"
+    "code-graph", "mermaid", "rich", "blast-radius"
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -33,7 +33,7 @@ watch = ["watchdog>=3.0"]
 all = ["rich>=13.0", "watchdog>=3.0"]
 
 [project.scripts]
-blast-radius = "blast_radius.core:_cli"
+impact-radius = "blast_radius.core:_cli"
 
 [project.urls]
 Homepage = "https://lexipro.online"
