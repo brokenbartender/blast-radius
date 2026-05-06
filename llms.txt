@@ -1,0 +1,39 @@
+# impact-radius (blast-radius)
+
+> AST call graph analyzer for Python - answers "what breaks if I change this file?"
+
+## What it does
+Builds an incremental import/symbol call graph for Python projects stored in
+SQLite. SHA-256 caches mean only changed files are re-indexed. Given any file,
+returns the full transitive set of dependents in milliseconds.
+
+## Use cases
+- Pre-commit safety check: know impact before editing
+- CI gate: block PRs that touch high-centrality files without review
+- Refactoring: identify dead code and blast radius before large changes
+- Multi-agent AI systems: pre-edit safety gate with god-node detection
+- Code review tooling: auto-comment blast radius on GitHub PRs via Mermaid
+
+## Key concepts
+- God node: file with in_degree_sum >= 30 (imported by 30+ modules transitively)
+- Blast radius: total files affected by changing a given file
+- Incremental indexing: only re-indexes files changed since last build
+- Mermaid output: renders dependency graphs in GitHub issues and PRs
+
+## Install
+pip install impact-radius
+
+## Quick use
+impact-radius --build
+impact-radius --query src/utils.py
+impact-radius --query src/utils.py --mermaid
+
+## Python API
+from blast_radius import build_graph, get_blast_radius, to_mermaid
+build_graph()
+result = get_blast_radius("src/utils.py")
+
+## Links
+- GitHub: https://github.com/brokenbartender/blast-radius
+- PyPI: https://pypi.org/project/impact-radius/
+- Homepage: https://lexipro.online
