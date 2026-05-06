@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+title: impact-radius
+abstract: >
+  AST call graph analyzer for Python projects. Answers "what breaks if I
+  change this file?" by indexing imports and symbol definitions into SQLite
+  with SHA-256 incremental caching. Supports god-node detection, Mermaid
+  diagram output, Rich colored tree output, and file-watch mode.
+message: "If you use this software, please cite it using these metadata."
+type: software
+authors:
+  - family-names: McKenzie
+    given-names: Cody
+    affiliation: Broken Arrow Entertainment LLC
+repository-code: https://github.com/brokenbartender/blast-radius
+url: https://lexipro.online
+license: MIT
+version: 1.0.0
+keywords:
+  - ast
+  - call-graph
+  - static-analysis
+  - impact-analysis
+  - dependency-analysis
+  - python
+  - devtools
+  - code-quality
+  - refactoring
+  - god-node
+  - mermaid
+  - sqlite
