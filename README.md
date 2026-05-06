@@ -211,3 +211,48 @@ with in-degree ≥ 30 must acquire a hard mutex first.
 MIT — see [LICENSE](LICENSE).
 
 Built by [Broken Arrow Entertainment LLC](https://lexipro.online) · Sovereign Intelligence Systems Group
+
+---
+
+## OS Integration — God-Node Gate
+
+`blast-radius` wires into pre-edit safety gates to enforce a hard stop before any
+agent touches a high-centrality file. This is the v9.6 integration pattern used in
+the [LexiPro Sovereign OS](https://lexipro.online):
+
+```python
+# tool_hook_pipeline.py — _hook_guardian_path_guard (v9.6)
+from blast_radius import get_blast_radius, rebuild_if_stale
+
+async def pre_edit_gate(file_path: str) -> dict:
+    rebuild_if_stale(max_age_seconds=300)
+    br = get_blast_radius(file_path)
+
+    # Hard block — god-node writes require explicit mutex acquisition
+    if br.get("graphify", {}).get("god_node"):
+        in_deg = br["graphify"]["in_degree_sum"]
+        return {
+            "allowed": False,
+            "error": (
+                f"GOD_NODE_PROTECTED: {file_path} has in_degree_sum={in_deg}. "
+                f"Acquire hard mutex before editing god-node files."
+            ),
+        }
+
+    # High blast radius — warn + emit contention pheromone
+    if br["total_affected"] >= 10:
+        emit_contention_pheromone(file_path, strength=br["total_affected"] / 50.0)
+
+    return {"allowed": True, "warning": f"{br['total_affected']} dependents affected"}
+```
+
+**God-node threshold:** files with `in_degree_sum >= 30` (via Graphify) require
+explicit mutex acquisition before any write. Without Graphify, the gate still warns
+on `total_affected >= 10`.
+
+**Pheromone broadcast:** high-blast-radius edits emit a `WRITE_CONTENTION` signal
+to the NeuralBus so other agents observe the contested resource and can defer
+non-critical writes.
+
+Run `graphify update .` in your repo root to generate `graphify-out/graph.json`
+and enable god-node detection.
