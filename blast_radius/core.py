@@ -306,12 +306,12 @@ def get_blast_radius(
 
     all_files  = [r[0] for r in dependents if r[0] != rel]
     test_files = [f for f in all_files if f.startswith("tests/") or "/test_" in f]
-    conn.close()
 
     dyn_rows = cur.execute(
         "SELECT to_module, mechanism FROM dynamic_imports WHERE from_file=?", (rel,)
     ).fetchall()
     dynamic_imports = [{"module": r[0], "mechanism": r[1]} for r in dyn_rows]
+    conn.close()
 
     result = {
         "file":              rel,
