@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "impact-radius"
-version = "1.0.1"
+version = "1.1.0"
 description = "AST call graph analyzer — what breaks if I change this file?"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -12,7 +12,8 @@ license = {text = "MIT"}
 keywords = [
     "ast", "static-analysis", "dependency-analysis", "call-graph",
     "python", "devtools", "refactoring", "impact-analysis",
-    "code-graph", "mermaid", "rich", "blast-radius"
+    "code-graph", "mermaid", "rich", "blast-radius",
+    "pytest", "pytest-plugin", "pre-commit", "ci", "targeted-testing"
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -24,22 +25,27 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Libraries",
     "Topic :: Software Development :: Quality Assurance",
+    "Framework :: Pytest",
 ]
 dependencies = []
 
 [project.optional-dependencies]
-rich = ["rich>=13.0"]
-watch = ["watchdog>=3.0"]
-all = ["rich>=13.0", "watchdog>=3.0"]
+rich   = ["rich>=13.0"]
+watch  = ["watchdog>=3.0"]
+pytest = ["pytest>=7.0"]
+all    = ["rich>=13.0", "watchdog>=3.0", "pytest>=7.0"]
 
 [project.scripts]
 impact-radius = "blast_radius.core:_cli"
 
+[project.entry-points."pytest11"]
+blast-radius = "blast_radius.pytest_plugin"
+
 [project.urls]
-Homepage = "https://lexipro.online"
+Homepage   = "https://lexipro.online"
 Repository = "https://github.com/brokenbartender/blast-radius"
-Issues = "https://github.com/brokenbartender/blast-radius/issues"
+Issues     = "https://github.com/brokenbartender/blast-radius/issues"
 
 [tool.setuptools.packages.find]
-where = ["."]
+where   = ["."]
 include = ["blast_radius*"]

@@ -1,0 +1,22 @@
+- id: blast-radius-build
+  name: Blast Radius — rebuild graph
+  description: >
+    Rebuild the blast-radius dependency graph whenever Python files change.
+    Run `impact-radius --query src/changed.py` after to see what is affected.
+  language: python
+  entry: impact-radius
+  args: [--build]
+  types: [python]
+  pass_filenames: false
+
+- id: blast-radius-staged
+  name: Blast Radius — show impact of staged files
+  description: >
+    Print the blast radius (affected files and tests) for every staged Python
+    file.  Informational only — does not block the commit.
+  language: python
+  entry: impact-radius
+  args: [--staged]
+  types: [python]
+  pass_filenames: false
+  verbose: true

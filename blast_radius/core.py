@@ -553,6 +553,19 @@ def rebuild_if_stale(
 # CLI
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _get_staged_py_files() -> list[str]:
+    """Return .py files currently staged in git."""
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR"],
+            capture_output=True, text=True, timeout=5,
+        )
+        return [f for f in result.stdout.splitlines() if f.endswith(".py")]
+    except Exception:
+        return []
+
+
 def _cli() -> None:
     import argparse
 
@@ -563,6 +576,7 @@ def _cli() -> None:
     p.add_argument("--build",    action="store_true", help="(Re)build the code graph.")
     p.add_argument("--force",    action="store_true", help="Force full rebuild (ignore SHA cache).")
     p.add_argument("--query",    default="",          help="Show blast radius for FILE.")
+    p.add_argument("--staged",   action="store_true", help="Show blast radius for all git-staged .py files.")
     p.add_argument("--mermaid",  action="store_true", help="Output Mermaid diagram (use with --query).")
     p.add_argument("--watch",    action="store_true", help="Watch for changes and auto-rebuild.")
     p.add_argument("--json",     action="store_true", help="Output raw JSON.")
@@ -582,6 +596,33 @@ def _cli() -> None:
         n = build_graph(force=args.force, scan_dirs=scan, db_path=db)
         print(f"Built graph — {n} file(s) indexed.")
 
+    if args.staged:
+        staged = _get_staged_py_files()
+        if not staged:
+            print("No staged .py files found.")
+            sys.exit(0)
+        rebuild_if_stale(scan_dirs=scan, db_path=db)
+        all_affected: set[str] = set()
+        all_tests: set[str] = set()
+        print(f"Staged ({len(staged)} file(s)):")
+        for f in staged:
+            print(f"  {f}")
+        print()
+        for f in staged:
+            result = get_blast_radius(f, db_path=db)
+            all_affected.update(result.get("direct_dependents", []))
+            all_tests.update(result.get("test_files", []))
+        if args.json:
+            print(json.dumps({"staged": staged, "affected": sorted(all_affected), "test_files": sorted(all_tests)}, indent=2))
+        else:
+            if all_affected:
+                print(f"Blast radius — {len(all_affected)} file(s) affected:")
+                for dep in sorted(all_affected):
+                    tag = " [TEST]" if dep in all_tests else ""
+                    print(f"  -> {dep}{tag}")
+            else:
+                print("No dependents found (files may be leaf nodes).")
+
     if args.query:
         result = get_blast_radius(args.query, db_path=db)
         if args.json:
@@ -593,7 +634,7 @@ def _cli() -> None:
         else:
             _print_result_rich(result)
 
-    if not any([args.build, args.query, args.watch]):
+    if not any([args.build, args.query, args.watch, args.staged]):
         p.print_help()
 
 
