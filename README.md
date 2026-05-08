@@ -132,6 +132,86 @@ get_blast_radius("src/utils.py", db_path=Path("/tmp/my-graph.db"))
 
 ---
 
+## pytest plugin — targeted test selection
+
+Run only the tests that are actually affected by your staged changes:
+
+```bash
+pip install "impact-radius[pytest]"
+```
+
+```bash
+# Run only tests in the blast radius of staged files (pre-commit mode)
+pytest --blast-radius
+
+# Explicit file
+pytest --blast-radius --br-file src/utils.py
+
+# Bypass filter — run full suite (useful when --blast-radius is in addopts)
+pytest --blast-radius --br-all
+```
+
+Add to `pytest.ini` or `pyproject.toml` to make targeted testing the default:
+
+```ini
+[pytest]
+addopts = --blast-radius
+```
+
+The plugin deselects any test not in the blast radius of your changed files.
+Falls back to the full suite safely if no staged files are found or the graph
+is unavailable.
+
+---
+
+## --staged flag — impact report for all changed files
+
+See the combined blast radius across everything you are about to commit:
+
+```bash
+impact-radius --build
+impact-radius --staged
+```
+
+```
+Staged (2 file(s)):
+  src/utils.py
+  src/models/user.py
+
+Blast radius — 6 file(s) affected:
+  -> src/api/routes.py
+  -> src/api/auth.py
+  -> tests/test_utils.py  [TEST]
+  -> tests/test_api.py    [TEST]
+  -> tests/test_auth.py   [TEST]
+  -> src/cli.py
+```
+
+Add `--json` for machine-readable output:
+
+```bash
+impact-radius --staged --json | jq '.test_files'
+```
+
+---
+
+## pre-commit integration
+
+Add to your `.pre-commit-config.yaml`:
+
+```yaml
+repos:
+  - repo: https://github.com/brokenbartender/blast-radius
+    rev: v1.1.0
+    hooks:
+      # Rebuild the graph whenever Python files change
+      - id: blast-radius-build
+      # Show impact report for staged files (informational, never blocks)
+      - id: blast-radius-staged
+```
+
+---
+
 ## GitHub Action — comment blast radius on PRs
 
 ```yaml
@@ -146,16 +226,24 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with: {python-version: "3.11"}
       - run: pip install impact-radius
-      - name: Compute blast radius
+      - name: Compute blast radius for changed files
         id: br
         run: |
           impact-radius --build
-          echo "mermaid<<EOF" >> $GITHUB_OUTPUT
-          impact-radius --query "${{ github.event.pull_request.head.sha }}" --mermaid >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          # Get the first changed .py file to query
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- '*.py' | head -1)
+          if [ -n "$CHANGED" ]; then
+            echo "mermaid<<EOF" >> $GITHUB_OUTPUT
+            impact-radius --query "$CHANGED" --mermaid >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "mermaid=No Python files changed." >> $GITHUB_OUTPUT
+          fi
       - uses: marocchino/sticky-pull-request-comment@v2
         with:
           message: |
